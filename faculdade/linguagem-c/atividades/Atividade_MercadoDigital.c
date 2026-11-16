@@ -3,10 +3,7 @@
   TRABALHO - MERCADO DIGITAL
 
   INTEGRANTES DA EQUIPE:
-  - NOME COMPLETO DO ALUNO 1
-  - NOME COMPLETO DO ALUNO 2
-  - NOME COMPLETO DO ALUNO 3
-  - NOME COMPLETO DO ALUNO 4
+  Asafe de Lucas Silva Brito
 
   RESUMO:
   Sistema de vendas simples. Os dados ficam so na memoria (vetores de
@@ -88,19 +85,18 @@ double calculaSubtotal(struct carrinhos carrinho);
 double calculaTotal(double subtotal, double desconto);
 
 /* ================= MENU ================= */
-
 void mostraMenuInicial() {
-    printf("\n+------------------------------------------+\n");
-    printf("|             MERCADO DIGITAL              |\n");
-    printf("+------------------------------------------+\n");
-    printf("| 1 - Cadastrar cliente                    |\n");
-    printf("| 2 - Cadastrar produto                    |\n");
-    printf("| 3 - Listar clientes                      |\n");
-    printf("| 4 - Listar produtos                      |\n");
-    printf("| 5 - Efetuar venda                        |\n");
-    printf("| 0 - Sair                                 |\n");
-    printf("+------------------------------------------+\n");
-    printf("Escolha: ");
+    printf("\n  ####################################\n");
+    printf("  #         MERCADO DIGITAL          #\n");
+    printf("  ####################################\n");
+    printf("  #  1) Cadastrar cliente            #\n");
+    printf("  #  2) Cadastrar produto            #\n");
+    printf("  #  3) Listar clientes              #\n");
+    printf("  #  4) Listar produtos              #\n");
+    printf("  #  5) Efetuar venda                #\n");
+    printf("  #  0) Sair                         #\n");
+    printf("  ####################################\n");
+    printf("  Sua escolha: ");
 }
 
 /* ================= PRODUTOS ================= */
