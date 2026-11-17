@@ -56,6 +56,12 @@ struct carrinhos {
 /* ================= PROTOTIPOS ================= */
 void mostraMenuInicial();
 
+int lerInteiro(int invalido);
+
+double lerDecimal(double invalido);
+
+int soDigitos(char texto[], int tamanho);
+
 struct clientes cadastrarCliente();
 
 int geraCodigoCliente(double cpf);
@@ -86,17 +92,57 @@ double calculaTotal(double subtotal, double desconto);
 
 /* ================= MENU ================= */
 void mostraMenuInicial() {
-    printf("\n  ####################################\n");
-    printf("  #         MERCADO DIGITAL          #\n");
-    printf("  ####################################\n");
-    printf("  #  1) Cadastrar cliente            #\n");
-    printf("  #  2) Cadastrar produto            #\n");
-    printf("  #  3) Listar clientes              #\n");
-    printf("  #  4) Listar produtos              #\n");
-    printf("  #  5) Efetuar venda                #\n");
-    printf("  #  0) Sair                         #\n");
-    printf("  ####################################\n");
-    printf("  Sua escolha: ");
+    printf("\n  +==================================+\n");
+    printf("  |        MERCADO DIGITAL           |\n");
+    printf("  +==================================+\n");
+    printf("  |  [1]  Cadastrar cliente          |\n");
+    printf("  |  [2]  Cadastrar produto          |\n");
+    printf("  |  [3]  Listar clientes            |\n");
+    printf("  |  [4]  Listar produtos            |\n");
+    printf("  |  [5]  Efetuar venda              |\n");
+    printf("  |  [0]  Sair                       |\n");
+    printf("  +==================================+\n");
+    printf("   Sua escolha > ");
+}
+
+/* ================= LEITURA E VALIDACAO =================
+   Funcoes de apoio usadas em varios lugares do programa. */
+
+/* Le um inteiro. Se o usuario digitar texto, o texto e descartado
+   com %*s e a funcao devolve o valor "invalido" escolhido por quem
+   chamou (cada chamada decide o seu: 0, -1...). */
+int lerInteiro(int invalido) {
+    int valor;
+    if (scanf("%d", &valor) != 1) {
+        scanf("%*s");
+        return invalido;
+    }
+    return valor;
+}
+
+/* Mesma ideia, para numeros com virgula (valor e desconto) */
+double lerDecimal(double invalido) {
+    double valor;
+    if (scanf("%lf", &valor) != 1) {
+        scanf("%*s");
+        return invalido;
+    }
+    return valor;
+}
+
+/* 1 se o texto tem exatamente "tamanho" caracteres e todos sao
+   numeros (entre '0' e '9' na ASCII); senao devolve 0 */
+int soDigitos(char texto[], int tamanho) {
+    int tam = strlen(texto);
+    if (tam != tamanho) {
+        return 0;
+    }
+    for (int i = 0; i < tamanho; i++) {
+        if (texto[i] < '0' || texto[i] > '9') {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 /* ================= PRODUTOS ================= */
@@ -151,14 +197,9 @@ struct produtos cadastrarProduto() {
         }
     }
 
-    /* Se digitarem letras no valor, o scanf nao devolve 1: o texto e
-       descartado com %*s e o valor fica 0, que e recusado. */
     while (novo.valor <= 0) {
         printf("Valor do produto: R$ ");
-        if (scanf("%lf", &novo.valor) != 1) {
-            scanf("%*s");
-            novo.valor = 0;
-        }
+        novo.valor = lerDecimal(0);
         if (novo.valor <= 0) {
             printf("O valor deve ser maior que zero.\n");
         }
@@ -182,12 +223,14 @@ void listarProdutos(struct produtos produto[10]) {
 }
 
 /* Devolve o produto com o codigo informado ou, se nao achar,
-   um registro zerado (codigo 0) */
+   um registro zerado (codigo 0). Codigo 0 nunca e procurado,
+   pois e o valor de vaga vazia. */
 struct produtos localizaProduto(int codigo, struct produtos produto[10]) {
     struct produtos achado = {0};
     for (int i = 0; i < 10; i++) {
-        if (produto[i].codigo == codigo) {
+        if (produto[i].codigo == codigo && codigo != 0) {
             achado = produto[i];
+            break;
         }
     }
     return achado;
@@ -203,7 +246,7 @@ int geraCodigoCliente(double cpf) {
 
 /* Le os dados do cliente e devolve o registro pronto.
    CPF e telefones sao lidos como texto para conferir o tamanho e se
-   todos os caracteres sao numeros (entre '0' e '9' na ASCII). */
+   todos os caracteres sao numeros. */
 struct clientes cadastrarCliente() {
     struct clientes novo = {0};
     char cpfTexto[20];
@@ -220,10 +263,11 @@ struct clientes cadastrarCliente() {
         scanf("%19s", cpfTexto);
         if (strlen(cpfTexto) != 11) {
             ok = 0;
-        }
-        for (int i = 0; cpfTexto[i] != '\0'; i++) {
-            if (!(cpfTexto[i] >= '0' && cpfTexto[i] <= '9')) {
-                ok = 0;
+        } else {
+            for (int i = 0; i < 11; i++) {
+                if (!(cpfTexto[i] >= '0' && cpfTexto[i] <= '9')) {
+                    ok = 0;
+                }
             }
         }
         if (ok == 0) {
@@ -246,17 +290,9 @@ struct clientes cadastrarCliente() {
        %.2s = 2 primeiros | digitos + 2 = a partir do 3o | digitos + 6 = a partir do 7o */
     ok = 0;
     while (ok == 0) {
-        ok = 1;
         printf("Telefone fixo (DDD + 8 numeros): ");
         scanf("%15s", digitos);
-        if (strlen(digitos) != 10) {
-            ok = 0;
-        }
-        for (int i = 0; digitos[i] != '\0'; i++) {
-            if (!(digitos[i] >= '0' && digitos[i] <= '9')) {
-                ok = 0;
-            }
-        }
+        ok = soDigitos(digitos, 10);
         if (ok == 0) {
             printf("Telefone fixo invalido.\n");
         }
@@ -267,17 +303,9 @@ struct clientes cadastrarCliente() {
     /* Telefone movel: 11 numeros (DDD + 9), mascara (43) 99999-8888 */
     ok = 0;
     while (ok == 0) {
-        ok = 1;
         printf("Telefone movel (DDD + 9 numeros): ");
         scanf("%15s", digitos);
-        if (strlen(digitos) != 11) {
-            ok = 0;
-        }
-        for (int i = 0; digitos[i] != '\0'; i++) {
-            if (!(digitos[i] >= '0' && digitos[i] <= '9')) {
-                ok = 0;
-            }
-        }
+        ok = soDigitos(digitos, 11);
         if (ok == 0) {
             printf("Telefone movel invalido.\n");
         }
@@ -301,11 +329,15 @@ void listarClientes(struct clientes cliente[3]) {
     }
 }
 
+/* Devolve o cliente com o codigo informado ou, se nao achar,
+   um registro zerado (codigo 0). Codigo 0 nunca e procurado,
+   pois e o valor de vaga vazia. */
 struct clientes localizaCliente(int codigo, struct clientes cliente[3]) {
     struct clientes achado = {0};
     for (int i = 0; i < 3; i++) {
-        if (cliente[i].codigo == codigo) {
+        if (cliente[i].codigo == codigo && codigo != 0) {
             achado = cliente[i];
+            break;
         }
     }
     return achado;
@@ -353,10 +385,7 @@ void finalizarVenda(struct carrinhos carrinho) {
     carrinho.desconto = -1;
     while (carrinho.desconto < 0 || carrinho.desconto > 100) {
         printf("\nDesconto em porcentagem (0 a 100, ex.: 10 para 10%%): ");
-        if (scanf("%lf", &carrinho.desconto) != 1) {
-            scanf("%*s");
-            carrinho.desconto = -1;
-        }
+        carrinho.desconto = lerDecimal(-1);
         if (carrinho.desconto < 0 || carrinho.desconto > 100) {
             printf("Desconto fora do limite.\n");
         }
@@ -386,10 +415,7 @@ void efetuarVenda(struct clientes cliente[3], struct produtos produto[10], struc
     /* 1) Cliente */
     listarClientes(cliente);
     printf("\nCodigo do cliente: ");
-    if (scanf("%d", &cod) != 1) {
-        scanf("%*s");
-        cod = 0;
-    }
+    cod = lerInteiro(0);
     carrinho.cliente = localizaCliente(cod, cliente);
     if (carrinho.cliente.codigo == 0) {
         printf("\nCliente nao localizado.\n");
@@ -401,10 +427,7 @@ void efetuarVenda(struct clientes cliente[3], struct produtos produto[10], struc
     while (cod != 0) {
         listarProdutos(produto);
         printf("\nCodigo do produto (0 para concluir): ");
-        if (scanf("%d", &cod) != 1) {
-            scanf("%*s");
-            cod = -1;
-        }
+        cod = lerInteiro(-1);
 
         if (cod != 0) {
             prod = localizaProduto(cod, produto);
@@ -414,6 +437,7 @@ void efetuarVenda(struct clientes cliente[3], struct produtos produto[10], struc
             for (int i = 0; i < itens; i++) {
                 if (carrinho.produto[i].codigo == prod.codigo) {
                     pos = i;
+                    break;
                 }
             }
 
@@ -425,10 +449,7 @@ void efetuarVenda(struct clientes cliente[3], struct produtos produto[10], struc
                 qtd = 0;
                 while (qtd <= 0) {
                     printf("Quantidade: ");
-                    if (scanf("%d", &qtd) != 1) {
-                        scanf("%*s");
-                        qtd = 0;
-                    }
+                    qtd = lerInteiro(0);
                     if (qtd <= 0) {
                         printf("Quantidade invalida.\n");
                     }
@@ -438,6 +459,7 @@ void efetuarVenda(struct clientes cliente[3], struct produtos produto[10], struc
                     carrinho.produto[itens] = prod;
                     carrinho.quantidade[itens] = qtd;
                     itens++;
+                    printf("\nProduto adicionado ao carrinho!\n");
                 } else {
                     carrinho.quantidade[pos] += qtd;
                     printf("\nProduto ja estava no carrinho: quantidade somada.\n");
@@ -470,22 +492,15 @@ int main() {
 
     while (escolha != 0) {
         mostraMenuInicial();
-        /* Letra no lugar de numero: descarta o texto e vira opcao -1 */
-        if (scanf("%d", &escolha) != 1) {
-            scanf("%*s");
-            escolha = -1;
-        }
+        /* Letra no lugar de numero vira opcao -1 (invalida) */
+        escolha = lerInteiro(-1);
 
         if (escolha == 1) {
             if (totalClientes < 3) {
                 clienteNovo = cadastrarCliente();
 
-                jaExiste = 0;
-                for (int i = 0; i < totalClientes; i++) {
-                    if (cliente[i].codigo == clienteNovo.codigo) {
-                        jaExiste = 1;
-                    }
-                }
+                /* Codigo repetido = cliente ja cadastrado */
+                jaExiste = (localizaCliente(clienteNovo.codigo, cliente).codigo != 0);
 
                 if (clienteNovo.codigo == 0) {
                     /* CPF comecando com 000000 geraria codigo 0,
@@ -505,12 +520,7 @@ int main() {
             if (totalProdutos < 10) {
                 produtoNovo = cadastrarProduto();
 
-                jaExiste = 0;
-                for (int i = 0; i < totalProdutos; i++) {
-                    if (produto[i].codigo == produtoNovo.codigo) {
-                        jaExiste = 1;
-                    }
-                }
+                jaExiste = (localizaProduto(produtoNovo.codigo, produto).codigo != 0);
 
                 if (jaExiste == 1) {
                     printf("\nJa existe produto com esse codigo. Cadastro cancelado.\n");
