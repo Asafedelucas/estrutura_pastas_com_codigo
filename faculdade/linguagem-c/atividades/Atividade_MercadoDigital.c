@@ -14,6 +14,18 @@
 #include <stdio.h>
 #include <string.h>
 
+/* =================== COMO O PROGRAMA FUNCIONA ===================
+   - O programa mostra um menu e repete ate o usuario escolher 0.
+   - Cada opcao do menu chama uma funcao.
+   - Os dados ficam em VETORES DE STRUCTS na memoria: 3 clientes e
+     10 produtos. Quando o programa fecha, tudo se perde.
+   - Vaga vazia do vetor = registro com codigo 0. Por isso as
+     listagens so mostram o que tem codigo diferente de 0, e o codigo
+     0 nunca e procurado nem aceito como cadastro.
+   - Struct = um registro que junta dados da mesma coisa (por exemplo,
+     o cliente tem codigo, nome, cpf, sexo e telefones).
+   ================================================================= */
+
 /* ================= STRUCTS =================
    Cada struct agrupa dados relacionados em um unico registro. */
 
@@ -108,9 +120,12 @@ void mostraMenuInicial() {
 /* ================= LEITURA E VALIDACAO =================
    Funcoes de apoio usadas em varios lugares do programa. */
 
-/* Le um inteiro. Se o usuario digitar texto, o texto e descartado
-   com %*s e a funcao devolve o valor "invalido" escolhido por quem
-   chamou (cada chamada decide o seu: 0, -1...). */
+/* Le um inteiro.
+   O scanf devolve QUANTOS valores conseguiu ler. Se nao devolveu 1,
+   a pessoa digitou letra onde era numero. Nesse caso o scanf("%*s")
+   descarta o texto digitado (o * quer dizer "le mas nao guarda") e a
+   funcao devolve um valor invalido, escolhido por quem chamou
+   (0, -1...). Assim o programa nao trava com letras. */
 int lerInteiro(int invalido) {
     int valor;
     if (scanf("%d", &valor) != 1) {
@@ -120,7 +135,8 @@ int lerInteiro(int invalido) {
     return valor;
 }
 
-/* Mesma ideia, para numeros com virgula (valor e desconto) */
+/* Mesma ideia da lerInteiro, mas para numeros com virgula
+   (double): usada no valor do produto e no desconto. */
 double lerDecimal(double invalido) {
     double valor;
     if (scanf("%lf", &valor) != 1) {
@@ -130,8 +146,12 @@ double lerDecimal(double invalido) {
     return valor;
 }
 
-/* 1 se o texto tem exatamente "tamanho" caracteres e todos sao
-   numeros (entre '0' e '9' na ASCII); senao devolve 0 */
+/* Devolve 1 se o texto tem exatamente "tamanho" caracteres e todos
+   sao numeros; senao devolve 0.
+   Primeiro confere o tamanho com strlen. Depois olha caractere por
+   caractere: o caractere e um numero se estiver entre '0' e '9'.
+   Isso funciona porque, na tabela ASCII, os digitos sao seguidos
+   ('0' = 48 ... '9' = 57). */
 int soDigitos(char texto[], int tamanho) {
     int tam = strlen(texto);
     if (tam != tamanho) {
@@ -147,8 +167,13 @@ int soDigitos(char texto[], int tamanho) {
 
 /* ================= PRODUTOS ================= */
 
-/* Letra minuscula -> maiuscula (na ASCII, 'a' esta 32 posicoes
-   depois de 'A'). Assim "dell" e "DELL" geram o mesmo codigo. */
+/* ASCII e uma tabela que da um NUMERO para cada caractere, porque o
+   computador so guarda numeros. Exemplos: 'A' = 65, 'a' = 97,
+   '0' = 48, '9' = 57.
+   A minuscula esta sempre 32 posicoes depois da maiuscula
+   (97 - 65 = 32). Por isso, para virar maiuscula, a funcao subtrai
+   32 das letras minusculas. Assim "dell" e "DELL" geram o mesmo
+   codigo de produto. */
 int maiuscula(char c) {
     if (c >= 'a' && c <= 'z') {
         c = c - 32;
@@ -160,7 +185,19 @@ int maiuscula(char c) {
    C1*31^3 + C2*31^2 + C3*31 + C4
    C1 e C2 = 2 primeiras letras da marca
    C3 e C4 = 2 primeiras letras do modelo
-   Exemplo: DELL / PRECISION -> D=68, E=69, P=80, R=82 -> 2094659 */
+
+   Passo a passo:
+   1) Cada letra vira numero (ASCII) e fica maiuscula.
+   2) Cada numero e multiplicado por um "peso":
+      29791 (31*31*31), 961 (31*31), 31 e 1.
+   3) Soma tudo: esse e o codigo.
+   Os pesos fazem a POSICAO da letra importar, como no numero 345, em
+   que o 3 vale 300. Assim, produtos diferentes tendem a ter codigos
+   diferentes.
+
+   Exemplo: DELL / PRECISION
+   D=68, E=69, P=80, R=82
+   68*29791 + 69*961 + 80*31 + 82*1 = 2094659 */
 int geraCodigoProduto(char marca[], char modelo[]) {
     int C1 = maiuscula(marca[0]);
     int C2 = maiuscula(marca[1]);
@@ -173,7 +210,9 @@ int geraCodigoProduto(char marca[], char modelo[]) {
 /* Le os dados do produto e devolve o registro pronto.
    Como o registro nasce zerado ({0}), marca e modelo comecam com
    tamanho 0 e o valor com 0, entao cada while abaixo roda ao menos
-   uma vez e so termina quando o dado e aceito. */
+   uma vez e so termina quando o dado e aceito.
+   O scanf(" %19[^\n]") le ate o fim da linha (aceita espacos) e
+   guarda no maximo 19 caracteres, para nao estourar o vetor. */
 struct produtos cadastrarProduto() {
     struct produtos novo = {0};
     printf("\n>>> CADASTRO DE PRODUTO <<<\n");
@@ -222,9 +261,11 @@ void listarProdutos(struct produtos produto[10]) {
     }
 }
 
-/* Devolve o produto com o codigo informado ou, se nao achar,
-   um registro zerado (codigo 0). Codigo 0 nunca e procurado,
-   pois e o valor de vaga vazia. */
+/* Percorre o vetor com um for. Quando acha o codigo, guarda o
+   registro em "achado" e sai do for com break (nao precisa continuar
+   procurando). Se nao achar, devolve um registro zerado (codigo 0), e
+   quem chamou testa se o codigo e 0 para saber que nao foi achado.
+   O "codigo != 0" evita "achar" uma vaga vazia. */
 struct produtos localizaProduto(int codigo, struct produtos produto[10]) {
     struct produtos achado = {0};
     for (int i = 0; i < 10; i++) {
@@ -238,8 +279,10 @@ struct produtos localizaProduto(int codigo, struct produtos produto[10]) {
 
 /* ================= CLIENTES ================= */
 
-/* Codigo = 6 primeiros digitos do CPF. Dividir 12345678901 por
-   100000 da 123456,78901; ao converter para int sobra 123456. */
+/* Codigo = 6 primeiros digitos do CPF.
+   Dividir 12345678901 por 100000 da 123456,78901. O (int) converte
+   para inteiro e descarta o que vem depois da virgula: sobra 123456.
+   O CPF e double porque 11 digitos nao cabem em um int. */
 int geraCodigoCliente(double cpf) {
     return (int)(cpf / 100000);
 }
@@ -274,6 +317,9 @@ struct clientes cadastrarCliente() {
             printf("CPF invalido, digite novamente.\n");
         }
     }
+    /* O CPF foi lido como TEXTO para poder conferir o tamanho e os
+       digitos. Agora o sscanf converte esse texto em numero (double)
+       e guarda em novo.cpf. */
     sscanf(cpfTexto, "%lf", &novo.cpf);
 
     /* O sexo comeca como 0 (registro zerado), entao o while roda */
@@ -329,9 +375,9 @@ void listarClientes(struct clientes cliente[3]) {
     }
 }
 
-/* Devolve o cliente com o codigo informado ou, se nao achar,
-   um registro zerado (codigo 0). Codigo 0 nunca e procurado,
-   pois e o valor de vaga vazia. */
+/* Mesma logica da localizaProduto, mas para clientes: percorre o
+   vetor, guarda o registro achado e sai com break. Se nao achar,
+   devolve um registro zerado (codigo 0). */
 struct clientes localizaCliente(int codigo, struct clientes cliente[3]) {
     struct clientes achado = {0};
     for (int i = 0; i < 3; i++) {
@@ -403,7 +449,16 @@ void finalizarVenda(struct carrinhos carrinho) {
 
 /* Conduz a venda: escolhe o cliente, monta o carrinho e finaliza.
    O carrinho chega por valor (uma copia zerada), entao cada venda
-   comeca vazia. */
+   comeca vazia.
+
+   Variaveis importantes:
+   - itens: quantos TIPOS de produto ja estao no carrinho (maximo 3).
+   - pos: posicao do produto dentro do carrinho; -1 quer dizer que o
+     produto ainda nao esta la.
+   Regras:
+   - pos == -1 e itens == 3  -> carrinho cheio, recusa o produto.
+   - pos == -1               -> produto novo: coloca no fim e itens++.
+   - pos diferente de -1     -> produto repetido: so soma a quantidade. */
 void efetuarVenda(struct clientes cliente[3], struct produtos produto[10], struct carrinhos carrinho) {
     int cod;
     int qtd;
@@ -477,8 +532,10 @@ void efetuarVenda(struct clientes cliente[3], struct produtos produto[10], struc
 }
 
 /* ================= MAIN =================
-   Repete o menu ate o usuario escolher 0. Os vetores comecam zerados:
-   vaga vazia = codigo 0. */
+   Repete o menu ate o usuario escolher 0. O = {0} deixa os vetores
+   zerados no comeco: vaga vazia = codigo 0.
+   totalClientes e totalProdutos dizem em qual posicao o proximo
+   cadastro deve ser guardado e controlam o limite (3 e 10). */
 int main() {
     struct clientes cliente[3] = {0};
     struct produtos produto[10] = {0};
